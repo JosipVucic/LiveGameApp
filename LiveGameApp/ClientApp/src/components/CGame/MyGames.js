@@ -1,0 +1,238 @@
+import React, { Component } from 'react';
+import DataProvider from '../admin/DataProvider'
+import authService from '../api-authorization/AuthorizeService';
+import { FilterPill } from '../CUtil/FilterPill';
+import { GameAlbum } from './GameAlbum';
+import { Redirect } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+
+export class MyGames extends Component {
+    static displayName = MyGames.name;
+
+    constructor(props) {
+        super(props);
+        this.state = {
+            games: [],
+            total: 0,
+            pagination: {
+                page: 1,
+                perPage: 12,
+                hasPrev: false,
+                hasNext: false,
+            },
+            filter:
+            {
+                q: undefined,
+                GenreIds: []
+            },
+            genres: [],
+            selectedGenres: [],
+            filterMode: false,
+            isAuthenticated: false,
+            userName: null,
+            userId: null,
+            gameId: 0,
+        };
+    }
+
+    populateState = async () => {
+        const [isAuthenticated, user] = await Promise.all([authService.isAuthenticated(), authService.getUser()])
+        this.setState({
+            ...this.state,
+            isAuthenticated,
+            userName: user && user.name,
+            userId: user && Number(user.sub),
+        });
+        this.fetchItems();
+    }
+
+    fetchItems = () => {
+        const params = {
+            pagination: this.state.pagination,
+            sort: {
+                field: "id",
+                order: "ASC"
+            },
+            filter: {
+                ...this.state.filter,
+                OwnerIds: [this.state.userId],
+            }
+        };
+        let pagination = this.state.pagination;
+        let hasPrev = pagination.page > 1;
+        let startIndex = (pagination.page) * pagination.perPage;
+        DataProvider.getList("CGames", params).then(object => { this.setState({ ...this.state, pagination: { ...this.state.pagination, hasPrev: hasPrev, hasNext: startIndex < object.total }, games: object.data, total: object.total }); });
+
+        const genreParams = {
+            ...params,
+            filter: undefined,
+            pagination: {
+                ...this.state.pagination,
+                perPage: 100,
+            }
+        }
+
+        DataProvider.getList("GameGenres", genreParams)
+            .then(object => {
+                this.setState(
+                    {
+                        ...this.state,
+                        genres: object.data
+                    });
+            });
+    }
+
+    handlePageChange = (event) => {
+        this.setState({ ...this.state, pagination: { ...this.state.pagination, page: event.target.value } }, () => this.fetchItems());
+    }
+
+    handlePageInc = (event) => {
+        event.preventDefault();
+        let page = this.state.pagination.page + 1;
+        this.setState({ ...this.state, pagination: { ...this.state.pagination, page: page } }, () => this.fetchItems());
+    }
+
+    handlePageDec = (event) => {
+        event.preventDefault();
+        let page = Math.max(this.state.pagination.page - 1, 1);
+        this.setState({ ...this.state, pagination: { ...this.state.pagination, page: page } }, () => this.fetchItems());
+    }
+
+    componentDidMount() {
+        this._subscription = authService.subscribe(() => this.populateState());
+        this.populateState();
+    }
+
+    componentWillUnmount() {
+        authService.unsubscribe(this._subscription);
+    }
+
+    filterMenu = null;
+
+    handleFilterMenu = (event) => {
+        event.preventDefault();
+
+        const filterMode = !this.state.filterMode;
+        this.setState(
+            {
+                ...this.state,
+                filterMode: filterMode
+            });
+    }
+
+    handleReset = (event) => {
+        event.preventDefault();
+
+        this.setState({
+            ...this.state,
+            filter:
+            {
+                q: "",
+                GenreIds: []
+            },
+            selectedGenres: []
+        }, () => this.fetchItems())
+
+    }
+
+    handleFilterChange = (event) => {
+        const target = event.target;
+        let value = target.type === 'checkbox' ? target.checked : target.value;
+        const name = target.name;
+
+        if (value == "") value = undefined;
+
+        const filter = { ...this.state.filter, [name]: value };
+
+        this.setState({
+            ...this.state,
+            filter: filter,
+            pagination: {
+                page: 1,
+                perPage: 12,
+                hasPrev: false,
+                hasNext: false,
+            }
+        }, () => this.fetchItems());
+    }
+
+    handlePlanStart = (gameId) => {
+        this.setState({ ...this.state, gameId: gameId });
+    }
+
+    render() {
+        if (this.state.filterMode) {
+            this.filterMenu =
+                <div className="d-flex m-3 align-items-center justify-content-center">
+                <div className="card bg-dark col-sm-12 col-md-6 col-lg-5">
+                        <div className="card-body px-3 pt-3 pb-0">
+                            <form>
+                                <div className="form-group">
+                                    <label for="GameName">Name</label>
+                                    <input type="text" name="q" id="GameName" value={this.state.filter.q} onChange={this.handleFilterChange} className="form-control w-75" />
+                                </div>
+                            <div className="form-group w-50">
+                                    <label for="GameGenres">Add Genre</label>
+                                    <select name="Type" onChange={this.handleGenreAdd} className="form-control" id="GameGenres">
+                                        <option selected value="" disabled >Undefined</option>
+                                        {this.state.genres.map((value, index) => {
+                                            return <option value={JSON.stringify(value)}>{value.Name}</option>
+                                        })}
+                                    </select>
+                                    {this.state.selectedGenres.map((value, index) => {
+                                        return <FilterPill Name={value.Name} Value={value.id} close={this.handleFilterClose} />
+                                    })}
+                                </div>
+                                <div className="form-group d-flex">
+                                    <button className="form-control btn mx-1 btn-secondary" onClick={this.handleReset}>Reset</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>;
+        } else {
+            this.filterMenu = null
+        }
+
+        let nav = <nav aria-label="Page navigation">
+            <form>
+                <ul className="pagination justify-content-center">
+                    <li className="page-item">
+                        <button onClick={this.handleFilterMenu} className="page-link bg-dark text-light">Filters</button>
+                    </li>
+                    <li className="page-item">
+                        <button className="page-link" disabled={!this.state.pagination.hasPrev} onClick={this.handlePageDec}>Previous</button>
+                    </li>
+                    <li className="page-item">
+                        <input type="number" className="page-link text-center" value={this.state.pagination.page} onChange={this.handlePageChange} />
+                    </li>
+                    <li className="page-item">
+                        <button className="page-link" disabled={!this.state.pagination.hasNext} onClick={this.handlePageInc}>Next</button>
+                    </li>
+
+                </ul>
+            </form>
+        </nav>;
+
+        return (
+            <div className="container-fluid">
+
+                {this.planMenu}
+
+                <div className="text-center m-5">
+                    <h1 className="display-4">Library</h1>
+                </div>
+
+                {this.state.games.length == 0 ? <div className="d-flex flex-column align-items-center"><h1 className="text-center">To create a plan you need a game</h1><Link to="/gamelist"><button className="btn btn-primary">All games</button></Link></div> : nav}
+
+
+
+                {this.filterMenu}
+
+                <GameAlbum games={this.state.games} isAuthenticated={this.state.isAuthenticated} isLibrary click={this.populateState} plan={this.handlePlanStart} PlanBtnName="Plan" AddBtnName="Add" RemoveBtnName="Remove" />
+
+                {this.state.gameId != 0 ? <Redirect to={"/plancreate/" + this.state.gameId} /> : null}
+            </div>
+        );
+    }
+}

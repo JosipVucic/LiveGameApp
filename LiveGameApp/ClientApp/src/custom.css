@@ -1,0 +1,114 @@
+/* Provide sufficient contrast against white background */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
+a, a:hover {
+    color: #f7f7f7;
+    text-decoration: none;
+}
+
+code {
+  color: #E01A76;
+}
+
+.flex-even {
+    flex: 1 1 0;
+}
+
+.tri-right.border.right-top:before {
+    content: ' ';
+    position: absolute;
+    width: 0;
+    height: 0;
+    left: auto;
+    right: -40px;
+    top: -8px;
+    bottom: auto;
+}
+.tri-right.right-top:after {
+    content: ' ';
+    position: absolute;
+    width: 0;
+    height: 0;
+    left: auto;
+    right: -20px;
+    bottom: -1px;
+    top: auto;
+    border: 20px solid;
+}
+
+.tri-right.right-top.tri-color-primary:after {
+    border-color: #007bff transparent transparent transparent;
+}
+
+.tri-left.left-top.tri-color-primary:after {
+    border-color: #007bff transparent transparent transparent;
+}
+
+.tri-right.right-top.tri-color-info:after {
+    border-color: #6c757d transparent transparent transparent;
+}
+
+.tri-left.left-top.tri-color-info:after {
+    border-color: #6c757d transparent transparent transparent;
+}
+
+.tri-left.border.left-top:before {
+    content: ' ';
+    position: absolute;
+    width: 0;
+    height: 0;
+    right: auto;
+    left: -40px;
+    top: -8px;
+    bottom: auto;
+}
+
+.tri-left.left-top:after {
+    content: ' ';
+    position: absolute;
+    width: 0;
+    height: 0;
+    right: auto;
+    left: -20px;
+    bottom: -1px;
+    top: auto;
+    border: 20px solid;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #1b6ec2;
+  border-color: #1861ac;
+}
+
+body, #root {
+    background-color: #292b2c;
+    font-family: 'Montserrat', sans-serif;
+    height:100%;
+}
+
+.bg-special-dark {
+    background-color: #292b2c;
+}
+
+html {
+    height: 85%;
+}
+
+.pagination .page-link, .page-item.disabled{
+    background: #343a40 !important; 
+    color: white;
+}
+
+.page-link:disabled{
+    color: gray;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
